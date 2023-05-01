@@ -15,7 +15,7 @@ dgt = 6 # number of digits for grey-scale color
 n1 = 16 # number of horizontal pixels
 n2 = 16 # number of vertical pixels
 
-source.digit = 7
+source.digit = 9
 target.digit = 1
 N = 300 # number of training images
 

@@ -15,8 +15,8 @@ dgt = 6 # number of digits for grey-scale color
 n1 = 16 # number of horizontal pixels
 n2 = 16 # number of vertical pixels
 
-source.digit = 9
-target.digit = 8
+source.digit = 3
+target.digit = 1
 N = 300 # number of training images
 
 rescale.input = T
@@ -117,19 +117,28 @@ started = Sys.time()
 cat(" * Started at",toString(started),"\n")
 gps = foreach( i = 1:ncol(Y_), .packages="DiceKriging" ) %dopar% {
   gp = NULL
-  #trials = 0
-  #while( is.null(gp) & trials<2 ) {
-    #try( expr=(
-      gp = km( design = data.frame(X), response = Y_[,i], optim.method="BFGS",
-               covtype = kernel.type, nugget.estim = nugget.estimation, iso=T,
-               #upper=0.5, lower=10^dgt,
-               control=list(trace=F) )
+  # trials = 0
+  # while( is.null(gp) & trials<2 ) {
+    # try( expr=(
+      # gp = km( design = data.frame(X), response = Y_[,i], optim.method="BFGS",
+      #          covtype = kernel.type, nugget.estim = nugget.estimation, iso=T,
+      #          #upper=0.5, lower=10^dgt,
+      #          control=list(trace=F) )
       # ), silent=T )
   #   if( is.null(gp) )
   #     trials = trials+1
   # }
   # if( is.null(gp) )
   #   stop("IMPOSSIBLE TO LEARN A GP!")
+  
+  if( length(unique(Y_[,i]))>1 ) {
+    gp = km( design = data.frame(X), response = Y_[,i], optim.method="BFGS",
+             covtype = kernel.type, nugget.estim = nugget.estimation, iso=T,
+             #upper=0.5, lower=10^dgt,
+             control=list(trace=F) )
+  } else {
+    gp = Y_[1,i]
+  }
 }
 finished = Sys.time()
 cat(" * Finished at",toString(finished),"\n")
@@ -147,11 +156,14 @@ stopCluster(myCluster)
 preds = NULL
 
 for( gp in gps ) {
-  pred = predict( gp, data.frame(X.tst), "UK" )
-  p = pred$mean
-  
-  if( rescale.predictions )
-    p = (p-min(p))/(max(p)-min(p))
+  if( class(gp)=="km" ) {
+    pred = predict( gp, data.frame(X.tst), "UK" )
+    p = pred$mean    
+    if( rescale.predictions )
+      p = (p-min(p))/(max(p)-min(p))
+  } else {
+    p = rep(gp,nrow(X.tst))
+  }
   
   preds = cbind( preds, round(p,dgt) )
   # TODO: weak?
